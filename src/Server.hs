@@ -1,16 +1,21 @@
-module Server(startApp) where
+{-# LANGUAGE TypeOperators #-}
+module Server where
 
+import Api.Person(PersonApi, personServer)
+import Api.Team(TeamApi, teamServer)
 import Servant
-import Api
-import Network.Wai as W
-import Network.Wai.Handler.Warp as W
+import Network.Wai.Handler.Warp
 
-type Port = Int
-startApp :: Server.Port -> IO ()
-startApp p = run p app
 
+runApp :: IO ()
+runApp = run 1234 app
   where app :: Application
         app = serve api server
 
-        api :: Proxy Api
+        api :: Proxy AppApi
         api = Proxy
+
+type AppApi = PersonApi :<|> TeamApi
+
+server :: Server AppApi
+server = personServer :<|> teamServer

@@ -1,6 +1,7 @@
 module Main where
 
-import Server(startApp)
+import Server(runApp)
 
 main :: IO ()
-main = startApp 1234
+main = runApp
+

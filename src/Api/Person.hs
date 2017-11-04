@@ -3,7 +3,7 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Models.Person where
+module Api.Person (PersonApi, personServer) where
 
 import Data.Aeson
 import Data.Aeson.TH
@@ -21,9 +21,16 @@ data Person = Person
 instance ToJSON Person
 instance FromJSON Person
 
+type PersonApi = "persons"
+             :> QueryParam "name" String :> QueryParam "role" String :> QueryParam "slack" String :> QueryParam "email" String
+             :> Get '[JSON] [Person]
 
+personServer :: Server PersonApi
+personServer = queryPersons
+
+-- | Db functions
 queryPersons :: Maybe String -> Maybe String -> Maybe String -> Maybe String -> Handler [Person]
-queryPersons name role slack email = return $ filter (atLeastOneEqual name role slack email) personsDB where
+queryPersons name role slack email = return $ filter (atLeastOneEqual name role slack email) persons where
   atLeastOneEqual :: Maybe String -> Maybe String -> Maybe String -> Maybe String -> Person -> Bool
   atLeastOneEqual Nothing Nothing Nothing Nothing _ = True
   atLeastOneEqual n r s e (Person n' r' s' e')      = foldl (||) False $ zipWith (==) [n, r, s, e] (map Just [n', r', s', e'])
@@ -31,8 +38,6 @@ queryPersons name role slack email = return $ filter (atLeastOneEqual name role 
 addPerson :: Person -> Handler Person
 addPerson p = return p
 
-personsDB :: [Person]
-personsDB =
-  [ Person "Dxxx Mxxx Pxxx" "Data Engineer" "@dxxxx" "xxx@gilt.com"
-  , Person "Oxxx Cxxxx"     "Data Engineer" "@oxxxx" "xxxx@gilt.com"
-  ]
+
+
+persons = [Person "a" "b" "c" "d"] :: [Person]

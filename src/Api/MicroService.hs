@@ -3,12 +3,13 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Models.MicroService where
+module Api.MicroService where
 
 import Data.Aeson
 import Data.Aeson.TH
-import GHC.Generics
+import Network.Wai.Handler.Warp
 import Servant
+import GHC.Generics
 
 data MicroService = MicroService
   { name           :: String
@@ -17,8 +18,6 @@ data MicroService = MicroService
   , lastDeployment :: String
   , description    :: String
   } deriving (Eq, Show, Generic)
-
-
 
 instance ToJSON MicroService
 instance FromJSON MicroService

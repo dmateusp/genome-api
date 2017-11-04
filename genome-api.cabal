@@ -15,16 +15,17 @@ cabal-version:       >=1.10
 
 library
   hs-source-dirs:      src
-  exposed-modules:     Models.Person
-                     , Models.MicroService
-                     , Models.Team
-                     , Api
+  exposed-modules:     Api.Person
+                     , Api.MicroService
+                     , Api.Team
                      , Server
   build-depends:       base >= 4.7 && < 5
                      , aeson
+                     , mtl
                      , servant-server
                      , wai
                      , warp
+                     , hasbolt
   default-language:    Haskell2010
 
 executable genome-api
