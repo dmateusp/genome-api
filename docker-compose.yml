@@ -1,0 +1,23 @@
+version: '3'
+services:
+    genome-api:
+        build: .
+        image: genome-api
+        command: genome-api
+        expose:
+            - "1234"
+    nginx:
+        build: ./nginx
+        image: nginx
+        ports:
+            - "8080:80"
+        depends_on:
+            - genome-api
+
+    db:
+        image: neo4j
+        ports:
+            - "7474:7474"
+            - "7687:7687"
+        volumes:
+            - "./data:/data"
