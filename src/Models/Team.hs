@@ -3,7 +3,12 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Team where
+module Models.Team where
+
+import Servant
+import Data.Aeson
+import Data.Aeson.TH
+import GHC.Generics
 
 data Team = Team
   { name         :: String

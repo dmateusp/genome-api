@@ -15,8 +15,9 @@ cabal-version:       >=1.10
 
 library
   hs-source-dirs:      src
-  exposed-modules:     Lib
-                     , Models.Person
+  exposed-modules:     Models.Person
+                     , Models.MicroService
+                     , Models.Team
                      , Api
                      , Server
   build-depends:       base >= 4.7 && < 5

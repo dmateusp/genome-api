@@ -3,11 +3,12 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module MicroService where
+module Models.MicroService where
 
 import Data.Aeson
 import Data.Aeson.TH
 import GHC.Generics
+import Servant
 
 data MicroService = MicroService
   { name           :: String
