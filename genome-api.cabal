@@ -19,6 +19,8 @@ library
                      , Api.MicroService
                      , Api.Team
                      , Server
+                     , ServerState
+                     , Logger
   build-depends:       base >= 4.7 && < 5
                      , aeson
                      , mtl
@@ -26,6 +28,19 @@ library
                      , wai
                      , warp
                      , hasbolt
+                     , text
+                     , containers
+                     , transformers
+                     , resource-pool
+                     , data-default
+                     , monad-logger
+                     , bytestring
+                     , wai-extra
+                     , katip
+                     , fast-logger
+                     , wai-middleware-metrics
+                     , monad-metrics
+                     , persistent-postgresql
   default-language:    Haskell2010
 
 executable genome-api

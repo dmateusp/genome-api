@@ -28,5 +28,7 @@ stack build
 stack exec genome-api
 ```
 
+### Ghci notes
+To use `Data.Text`: do `:set -XOverloadedStrings`
 ## TODO
 Everything
