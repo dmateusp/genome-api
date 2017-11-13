@@ -5,79 +5,66 @@
 
 module Api.Person (PersonApi, personServer) where
 
-import Data.Aeson
-import Data.Aeson.TH
-import Network.Wai.Handler.Warp
-import Servant
-import GHC.Generics
-import Database.Bolt as Db
-import Data.Monoid                ((<>))
-import Data.Text                  (Text)
-import Data.Map.Strict            (fromList, Map)
-import Control.Monad.Trans.Reader (ReaderT (..))
-import Data.Pool                  (Pool, createPool)
-import Data.Default
-import ServerState                (AppT (..), ServerState (..))
-import Control.Monad.Except       (MonadIO, liftIO)
+import           Data.Aeson
+import           Data.Aeson.TH
+import           Network.Wai.Handler.Warp
+import           Servant
+import           GHC.Generics
+import           Database.Bolt    as DB
+import           Data.Monoid                ((<>))
+import           Data.Text                  (Text)
+import           Data.Map.Strict            (fromList, Map)
+import           Control.Monad.Trans.Reader (ReaderT (..))
+import           Data.Pool                  (withResource)
+import           ServerState                (AppT (..), ServerState (..), runDB)
+import           Control.Monad.Except       (MonadIO, liftIO, lift)
+import           Control.Monad.Logger       (logDebugNS)
+
+data PersonApiError =
+  BoltValueToPersonError
 
 data Person = Person
-  { name  :: String
-  , role  :: String
-  , slack :: String
-  , email :: String
+  { name  :: Text
+  , role  :: Text
+  , slack :: Text
+  , email :: Text
   } deriving (Eq, Show, Generic)
 
 instance ToJSON Person
 instance FromJSON Person
 
+-- |Converts some BOLT value to Person
+toPerson :: Monad m => DB.Value -> m Person
+toPerson (L [T name, T role, T slack, T email]) = return $ Person name role slack email
+toPerson _ = fail "Not a Person value"
+
 type PersonApi = "persons"
              :> QueryParam "name" Text :> QueryParam "role" Text :> QueryParam "slack" Text :> QueryParam "email" Text
              :> Get '[JSON] [Person]
 
-personServer :: Server PersonApi
+personServer :: MonadIO m => ServerT PersonApi (AppT m)
 personServer = queryPersons
 
-toPerson :: Monad m => Record -> m Person
-toPerson p = do
-               name  <- (p `at` "name")  >>= exact
-               role  <- (p `at` "role")  >>= exact
-               slack <- (p `at` "slack") >>= exact
-               email <- (p `at` "email") >>= exact
-               return $ Person name role slack email
-
-
-defaultConfig :: BoltCfg
-defaultConfig = def {user = "neo4j", password = "neo4j"}
-
 -- | Db functions
-queryPersons :: MonadIO m => Maybe Text -> Maybe Text -> Maybe Text -> Maybe Text -> AppT m Person
+queryPersons :: MonadIO m => Maybe Text -> Maybe Text -> Maybe Text -> Maybe Text -> AppT m [Person]
 queryPersons name role slack email = do
-  pipe    <- connect defaultConfig
-  records <- queryP cypher params
-  nodes   <- toPerson <$> records
-  nodes where
+  logDebugNS "web" "queryPersons"
 
-    toParam :: (Maybe Text, Text) -> (Text, Db.Value)
+  records <- runDB $ queryP cypher params
+  nodes   <- traverse (`at` "p") records
+  traverse toPerson nodes where
+
+    toParam :: (Maybe Text, Text) -> (Text, DB.Value)
     toParam ((Just val), argName) = (val, T argName)
     toParam (Nothing, argName)    = ("" , T argName)
 
-    params :: Map Text Db.Value
+    params :: Map Text DB.Value
     params = fromList $ toParam <$> [(name, "name"), (role, "role"), (slack, "slack"), (email, "email")]
 
     cypher :: Text
-    cypher = "MATCH (n:Person) WHERE" <>
-               "n.name  =~ {name}  AND" <>
-               "n.role  =~ {role}  AND" <>
-               "n.slack =~ {slack} AND" <>
-               "n.email =~ {email}" <>
-             "RETURN n"
-
-addPerson :: Person -> Handler Person
-addPerson p = return p
-
-
-
-persons = [Person "a" "b" "c" "d"] :: [Person]
-
--- |Reader monad over IO to store connection pool
-type WebM = ReaderT ServerState IO
+    cypher = "MATCH (p:Person) WHERE" <>
+               "p.name  =~ {name}  AND" <>
+               "p.role  =~ {role}  AND" <>
+               "p.slack =~ {slack} AND" <>
+               "p.email =~ {email}" <>
+             "RETURN p"

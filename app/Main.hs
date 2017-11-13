@@ -2,41 +2,31 @@
 module Main where
 
 import qualified Control.Monad.Metrics       as M
-import           Database.Persist.Postgresql (runSqlPool)
 import           Lens.Micro
 import           Network.Wai.Handler.Warp    (run)
 import           Network.Wai.Metrics
 import           System.Environment          (lookupEnv)
 import           System.Metrics              (newStore)
 import           System.Remote.Monitoring    (forkServer, serverMetricStore)
-
 import           Api                         (app)
-import           Api.User                    (generateJavaScript)
-import           ServerState                      (Config (..), Environment (..),
+import           ServerState                 (ServerState (..), Environment (..),
                                               makePool, setLogger)
 import           Logger                      (defaultLogEnv)
-import           Models                      (doMigrations)
-import           Safe                        (readMay)
 
 -- | The 'main' function gathers the required environment information and
 -- initializes the application.
 main :: IO ()
 main = do
-    env  <- lookupSetting "ENV" Development
-    port <- lookupSetting "PORT" 8081
-    logEnv <- defaultLogEnv
-    pool <- makePool env logEnv
-    store <- serverMetricStore <$> forkServer "localhost" 8000
+    env        <- lookupSetting "ENV" Development
+    port       <- lookupSetting "PORT" 8081
+    logEnv     <- defaultLogEnv
+    pool       <- makePool env logEnv
+    store      <- serverMetricStore <$> forkServer "localhost" 8000
     waiMetrics <- registerWaiMetrics store
-    metr <- M.initializeWith store
-    let cfg = Config { configPool = pool
-                     , configEnv = env
-                     , configMetrics = metr
-                     , configLogEnv = logEnv }
-        logger = setLogger env
-    runSqlPool doMigrations pool
-    generateJavaScript
-    run port $ logger $ metrics waiMetrics $ app cfg
+    metr       <- M.initializeWith store
+    let serverState = ServerState env metr logEnv poll
+    let logger = setLogger env
+    run port $ logger $ metrics waiMetrics $ app serverState
 
 -- | Looks up a setting in the environment, with a provided default, and
 -- 'read's that information into the inferred type.

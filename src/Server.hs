@@ -1,16 +1,19 @@
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE DataKinds #-}
 module Server(app) where
 
-import Api.Person(personServer)
-import Api.Team(teamServer)
+import Api.Person(personServer, PersonApi)
+import Api.Team(teamServer, TeamApi)
 import Control.Monad.Except
 import Servant((:<|>) ((:<|>)), (:~>) (NT),
                 Proxy (Proxy), Raw, ServantErr, Server,
                 enter, serve)
 import Servant.Server
-import Config (AppT (..), Config (..))
+import ServerState (AppT (..), ServerState (..))
+import qualified Database.Bolt                        as DB
+import Control.Category ((<<<), (>>>))
 
-type AppApi = PersonApi :<|> TeamApi
+type AppApi = PersonApi
 
 
 -- | This functions tells Servant how to run the 'App' monad with our
@@ -19,10 +22,10 @@ type AppApi = PersonApi :<|> TeamApi
 appToServer :: ServerState -> Server AppApi
 appToServer serverState = enter (convertApp serverState >>> NT Handler) server where
 
-   server :: Server AppApi
-   server = personServer :<|> teamServer
+   server :: MonadIO m => ServerT AppApi (AppT m)
+   server = personServer
 
-   -- | This function converts our @'AppT' m@ monad into the @ExceptT ServantErr
+   -- | converts @'AppT' m@ monad into @ExceptT ServantErr
    -- m@ monad that Servant's 'enter' function needs in order to run the
    -- application. The ':~>' type is a natural transformation, or, in
    -- non-category theory terms, a function that converts two type

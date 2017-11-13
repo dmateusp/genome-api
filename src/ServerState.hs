@@ -1,4 +1,5 @@
 {-# LANGUAGE FlexibleInstances          #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MultiParamTypeClasses      #-}
 {-# LANGUAGE OverloadedStrings          #-}
@@ -17,7 +18,7 @@ import           Control.Monad.Trans.Class
 import           Control.Monad.Trans.Maybe            (MaybeT (..), runMaybeT)
 import qualified Data.ByteString.Char8                as BS
 import           Data.Monoid                          ((<>))
-import           Data.Pool                            (Pool, createPool)
+import           Data.Pool                            (Pool, createPool, withResource)
 import           Network.Wai                          (Middleware)
 import           Network.Wai.Middleware.RequestLogger (logStdout, logStdoutDev)
 import           Servant                              (ServantErr)
@@ -46,10 +47,10 @@ type ConnectionPool = Pool DB.Pipe
 -- running in and a Persistent 'ConnectionPool'.
 data ServerState
     = ServerState
-    { environment   :: Environment
-    , metrics       :: Metrics
-    , logEnv        :: LogEnv
-    , pool          :: ConnectionPool
+    { environment    :: Environment
+    , metrics        :: Metrics
+    , logEnv         :: LogEnv
+    , connectionPool :: ConnectionPool
     }
 
 instance Monad m => MonadMetrics (AppT m) where
@@ -125,6 +126,11 @@ makePool Production env = do
         -- 'Either'.
          Nothing -> throwIO (userError "Database Configuration not present in environment.")
          Just a -> return a
+
+runDB :: (MonadReader ServerState m, MonadIO m) => DB.BoltActionT IO b -> m b
+runDB query = do
+    pool <- asks connectionPool
+    liftIO $ withResource pool $ (flip DB.run) query
 
 -- | The number of stripes to use for a given environment.
 envPool :: Environment -> Int
