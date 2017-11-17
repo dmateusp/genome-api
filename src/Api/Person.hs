@@ -1,24 +1,28 @@
-{-# LANGUAGE DataKinds     #-}
-{-# LANGUAGE TypeOperators #-}
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DataKinds           #-}
+{-# LANGUAGE TypeOperators       #-}
+{-# LANGUAGE DeriveGeneric       #-}
+{-# LANGUAGE OverloadedStrings   #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module Api.Person (PersonApi, personServer) where
 
+import           GHC.Generics
 import           Data.Aeson
 import           Data.Aeson.TH
-import           Network.Wai.Handler.Warp
-import           Servant
-import           GHC.Generics
-import           Database.Bolt    as DB
 import           Data.Monoid                ((<>))
 import           Data.Text                  (Text)
-import           Data.Map.Strict            (fromList, Map)
-import           Control.Monad.Trans.Reader (ReaderT (..))
+import           Data.Map.Strict            (fromList, Map, toList)
+import           Data.String                (fromString)
 import           Data.Pool                  (withResource)
-import           ServerState                (AppT (..), ServerState (..), runDB)
-import           Control.Monad.Except       (MonadIO, liftIO, lift)
+import           Control.Monad.Except       (MonadIO, liftIO, lift, join)
 import           Control.Monad.Logger       (logDebugNS)
+import           Control.Monad.Trans.Reader (ReaderT (..))
+import           Network.Wai.Handler.Warp
+import           Database.Bolt    as DB
+import           Servant
+import           ServerState                (AppT (..), ServerState (..), runDB)
+import           Utils                      (ToTemplateParams(..))
+
 
 data PersonApiError =
   BoltValueToPersonError
@@ -32,27 +36,46 @@ data Person = Person
 
 instance ToJSON Person
 instance FromJSON Person
+instance ToTemplateParams Person where
+  toTemplateParams (Person name role slack email) = fromList $ [("name", T name), ("role", T role), ("slack", T slack), ("email", T email)]
 
 -- |Converts some BOLT value to Person
 toPerson :: Monad m => DB.Value -> m Person
-toPerson (L [T name, T role, T slack, T email]) = return $ Person name role slack email
-toPerson _ = fail "Not a Person value"
+toPerson p = do node  :: Node <- exact p
+                let props = nodeProps node
+                name  :: Text <- (props `at` "name")  >>= exact
+                role  :: Text <- (props `at` "role")  >>= exact
+                slack :: Text <- (props `at` "slack") >>= exact
+                email :: Text <- (props `at` "email") >>= exact
+                return $ Person name role slack email
 
-type PersonApi = "persons"
-             :> QueryParam "name" Text :> QueryParam "role" Text :> QueryParam "slack" Text :> QueryParam "email" Text
-             :> Get '[JSON] [Person]
+
+-- | Defining API and server
+type PersonApi =
+             "persons" :> QueryParam "name" Text :> QueryParam "role" Text :> QueryParam "slack" Text :> QueryParam "email" Text :> Get '[JSON] [Person]
+        :<|> "person"  :> ReqBody '[JSON] Person :> Put '[JSON] Person
 
 personServer :: MonadIO m => ServerT PersonApi (AppT m)
 personServer = queryPersons
+         :<|>  upsertPerson
 
--- | Db functions
+
+-- | DB Functions
 queryPersons :: MonadIO m => Maybe Text -> Maybe Text -> Maybe Text -> Maybe Text -> AppT m [Person]
 queryPersons name role slack email = do
-  logDebugNS "web" "queryPersons"
+  logDebugNS "web" "Searching persons"
 
   records <- runDB $ queryP cypher params
   nodes   <- traverse (`at` "p") records
   traverse toPerson nodes where
+
+    cypher :: Text
+    cypher = "MATCH (p:Person) WHERE " <>
+               "p.name  =~ {name}  OR " <>
+               "p.role  =~ {role}  OR " <>
+               "p.slack =~ {slack} OR " <>
+               "p.email =~ {email} " <>
+             "RETURN p"
 
     toParam :: (Maybe Text, Text) -> (Text, DB.Value)
     toParam ((Just val), argName) = (val, T argName)
@@ -61,10 +84,19 @@ queryPersons name role slack email = do
     params :: Map Text DB.Value
     params = fromList $ toParam <$> [(name, "name"), (role, "role"), (slack, "slack"), (email, "email")]
 
+
+upsertPerson :: MonadIO m => Person -> AppT m Person
+upsertPerson p = do
+  logDebugNS "web" $ "Upserting: " <> (fromString $ show p)
+  result <- fmap head $ runDB $ queryP cypher (toTemplateParams p)
+  person <- result `at` "p" >>= toPerson
+  return $ person where
+
     cypher :: Text
-    cypher = "MATCH (p:Person) WHERE" <>
-               "p.name  =~ {name}  AND" <>
-               "p.role  =~ {role}  AND" <>
-               "p.slack =~ {slack} AND" <>
-               "p.email =~ {email}" <>
+    cypher = "MERGE (p:Person { "<>
+               "name: {name} , "   <>
+               "role: {role} , "   <>
+               "slack: {slack}, "  <>
+               "email: {email} "   <>
+             "}) "               <>
              "RETURN p"
