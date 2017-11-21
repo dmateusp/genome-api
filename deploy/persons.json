@@ -1,0 +1,21 @@
+{
+  "query" : "UNWIND {props} AS properties CREATE (n:Person) SET n = properties RETURN n",
+  "params" : {
+    "props" : [ {
+      "name" : "Daniel Mateus Pires",
+      "role" : "Software & Data engineer",
+      "slack" : "@dpires",
+      "email" : "dmateusp@gmail.com"
+    }, {
+      "name" : "John Smith",
+      "role" : "Back-end",
+      "slack" : "@jsmith",
+      "email" : "jsmith@gmail.com"
+    },{
+      "name" : "Paul Murphy",
+      "role" : "Front-end",
+      "slack" : "@jsmith",
+      "email" : "jsmith@gmail.com"
+    }]
+  }
+}

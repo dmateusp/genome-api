@@ -32,3 +32,4 @@ doc/_build
 doc/venv
 doc/tutorial/static/api.js
 doc/tutorial/static/jq.js
+.DS_Store
