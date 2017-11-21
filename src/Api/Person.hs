@@ -4,7 +4,7 @@
 {-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module Api.Person (PersonApi, personServer) where
+module Api.Person (Person(..), PersonApi, personServer, personApi) where
 
 import           GHC.Generics
 import           Data.Aeson
@@ -54,6 +54,9 @@ toPerson p = do node  :: Node <- exact p
 type PersonApi =
              "persons" :> QueryParam "name" Text :> QueryParam "role" Text :> QueryParam "slack" Text :> QueryParam "email" Text :> Get '[JSON] [Person]
         :<|> "person"  :> ReqBody '[JSON] Person :> Put '[JSON] Person
+
+personApi :: Proxy PersonApi
+personApi = Proxy
 
 personServer :: MonadIO m => ServerT PersonApi (AppT m)
 personServer = queryPersons

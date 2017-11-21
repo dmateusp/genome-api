@@ -1,11 +1,10 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE DataKinds #-}
-module Server(app) where
+module Server(app, api) where
 
 import Api.Person(personServer, PersonApi)
-import Api.Team(teamServer, TeamApi)
 import Control.Monad.Except
-import Servant((:<|>) ((:<|>)), (:~>) (NT),
+import Servant((:<|>), (:~>) (NT),
                 Proxy (Proxy), Raw, ServantErr, Server,
                 enter, serve)
 import Servant.Server
@@ -13,17 +12,16 @@ import ServerState (AppT (..), ServerState (..))
 import qualified Database.Bolt                        as DB
 import Control.Category ((<<<), (>>>))
 
-type AppApi = PersonApi
 
+type AppApi = PersonApi
+api :: Proxy AppApi
+api = Proxy
 
 -- | This functions tells Servant how to run the 'App' monad with our
 -- 'server' function. @NT 'Handler'@ is a natural transformation that
 -- effectively specialises app base monad to IO
 appToServer :: ServerState -> Server AppApi
 appToServer serverState = enter (convertApp serverState >>> NT Handler) server where
-
-   server :: MonadIO m => ServerT AppApi (AppT m)
-   server = personServer
 
    -- | converts @'AppT' m@ monad into @ExceptT ServantErr
    -- m@ monad that Servant's 'enter' function needs in order to run the
@@ -33,7 +31,8 @@ appToServer serverState = enter (convertApp serverState >>> NT Handler) server w
    convertApp :: ServerState -> AppT m :~> ExceptT ServantErr m
    convertApp serverState = runReaderTNat serverState <<< NT runApp
 
+server :: MonadIO m => ServerT AppApi (AppT m)
+server = personServer
 
--- | Finally, this function takes a configuration and runs our 'API'
 app :: ServerState -> Application
-app serverState = serve (Proxy :: Proxy AppApi) (appToServer serverState)
+app serverState = serve api (appToServer serverState)

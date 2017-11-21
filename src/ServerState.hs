@@ -10,8 +10,6 @@ import           Control.Monad.Except                 (ExceptT, MonadError)
 import           Control.Monad.IO.Class
 import           Control.Monad.Logger                 (MonadLogger (..),
                                                        toLogStr)
-import           Control.Monad.Metrics                (Metrics, MonadMetrics,
-                                                       getMetrics)
 import           Control.Monad.Reader                 (MonadIO, MonadReader,
                                                        ReaderT, ask, asks)
 import           Control.Monad.Trans.Class
@@ -48,13 +46,9 @@ type ConnectionPool = Pool DB.Pipe
 data ServerState
     = ServerState
     { environment    :: Environment
-    , metrics        :: Metrics
     , logEnv         :: LogEnv
     , connectionPool :: ConnectionPool
     }
-
-instance Monad m => MonadMetrics (AppT m) where
-    getMetrics = asks ServerState.metrics
 
 -- | Katip instance for @AppT m@
 instance MonadIO m => Katip (AppT m) where

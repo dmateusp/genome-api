@@ -32,7 +32,7 @@ To use `Data.Text`: do `:set -XOverloadedStrings`
 
 ### Testing the API
 ```
-curl -X GET -H "Content-Type: application/json" localhost:8081/persons
+curl -i -X GET -H "Content-Type: application/json" localhost:8081/persons
 
-curl -i -X PUT -H "Content-Type: application/js: "Daniel", "role": "Software & Data Engineer", "slack": "@dpires", "email": "dpires@gilt.com"}' localhost:8081/person
+curl -i -X PUT -H "Content-Type: application/json" -d '{"name": "Daniel Mateus Pires", "role": "Software & Data Engineer", "slack": "@dpires", "email": "dpires@gilt.com"}' localhost:8081/person
 ```

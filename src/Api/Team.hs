@@ -19,16 +19,3 @@ data Team = Team
 
 instance ToJSON Team
 instance FromJSON Team
-
-type TeamApi = "teams"
-               :> Get '[JSON] [Team]
-
-teamServer :: Server TeamApi
-teamServer = return teams
-
--- | Db functions
-queryTeams :: Maybe String -> Maybe String -> Maybe String -> Handler [Team]
-queryTeams name role githubChanel = return teams
-
-teams :: [Team]
-teams = [Team "x" "y" "z"]
