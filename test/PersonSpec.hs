@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE QuasiQuotes #-}
 
 module PersonSpec where
 
@@ -10,14 +11,18 @@ import           Logger                      (defaultLogEnv)
 import           Safe                        (readMay)
 import           Test.Hspec
 import           Test.Hspec.Wai
+import           Test.Hspec.Wai.JSON
 import           Network.Wai                 (Application)
 import           Network.Wai.Handler.Warp    (run)
+import           Api.Person
+import           Data.Aeson                  (encode)
+import           Data.ByteString.Lazy.Char8 as L (unpack)
 
 spec :: Spec
 spec = with appInstance $ do
   describe "/persons" $ do
-      it "returns an empty list" $ do
-        get "persons" `shouldRespondWith` 200
+      it "returns some persons" $ do
+        get "persons" `shouldRespondWith` [json|[]|] where
 
 appInstance :: IO Application
 appInstance = do

@@ -14,20 +14,22 @@
 ```
 export GENOME_ENV=dev
 docker-compose up db
+```
+
+Change the password for the database:
+```
 curl -H "Content-Type: application/json" -XPOST -d '{"password":"devenv"}' -u neo4j:neo4j http://192.168.99.100:7474/user/neo4j/password
 ```
-The Database's data and logs will be persisted under `${HOME}/genome-api/neo4j-persist/${GENOME_ENV}/`
+The Database's data and logs will be persisted under `${HOME}/genome-api/neo4j-persist/${GENOME_ENV}/`, you can reset your development data by running: `rm -rf ${HOME}/genome-api/neo4j-persist/dev/`
 
-**Build**
+**Building and starting the web server**
 ```
 stack build
-```
-**Start the web server locally**
-```
 stack exec genome-api
 ```
+By default the server starts at `localhost:8081`
 
-**Run the tests**
+**Running the tests**
 ```
 ./deploy/run_tests.sh
 ```

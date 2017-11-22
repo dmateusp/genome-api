@@ -11,8 +11,9 @@ import           Data.Aeson
 import           Data.Aeson.TH
 import           Data.Monoid                ((<>))
 import           Data.Text                  (Text)
+import           Data.Text.Lazy             (toStrict)
+import           Data.Text.Lazy.Encoding    (decodeUtf8)
 import           Data.Map.Strict            (fromList, Map, toList)
-import           Data.String                (fromString)
 import           Data.Pool                  (withResource)
 import           Control.Monad.Except       (MonadIO, liftIO, lift, join)
 import           Control.Monad.Logger       (logDebugNS)
@@ -74,10 +75,10 @@ queryPersons name role slack email = do
 
     cypher :: Text
     cypher = "MATCH (p:Person) WHERE " <>
-               "p.name  =~ {name}  OR " <>
-               "p.role  =~ {role}  OR " <>
-               "p.slack =~ {slack} OR " <>
-               "p.email =~ {email} " <>
+               "p.name CONTAINS {name}  OR " <>
+               "p.role CONTAINS {role}  OR " <>
+               "p.slack CONTAINS {slack} OR " <>
+               "p.email CONTAINS {email} " <>
              "RETURN p"
 
     toParam :: (Maybe Text, Text) -> (Text, DB.Value)
@@ -90,7 +91,7 @@ queryPersons name role slack email = do
 
 upsertPerson :: MonadIO m => Person -> AppT m Person
 upsertPerson p = do
-  logDebugNS "web" $ "Upserting: " <> (fromString $ show p)
+  logDebugNS "web" $ "Upserting: " <> (toStrict $ decodeUtf8 $ encode p)
   result <- fmap head $ runDB $ queryP cypher (toTemplateParams p)
   person <- result `at` "p" >>= toPerson
   return $ person where

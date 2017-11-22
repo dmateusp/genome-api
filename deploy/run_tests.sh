@@ -10,6 +10,7 @@ function waitForDb() {
 # -- Preparing Docker
 docker-machine start
 eval $(docker-machine env)
+docker-compose down
 docker-compose up -d db
 
 # -- Waiting for DB to start
