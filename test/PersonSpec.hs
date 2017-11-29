@@ -19,11 +19,12 @@ spec :: Spec
 spec = with appInstance $ do
   describe "/persons" $ do
       it "returns some persons" $ do
-        get "persons" `shouldRespondWith` personsResponse
+        get "persons" `shouldRespondWith` personsResponseEmpty
 
-personsResponse =
+personsResponseEmpty =
   let ResponseMatcher status headers body = [json|[]|]
   in ResponseMatcher status [hContentType <:> "application/json;charset=utf-8"] body
+
 appInstance :: IO Application
 appInstance = do
          let port = 8083

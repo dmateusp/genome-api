@@ -10,7 +10,7 @@
  
 ## Getting started
 
-**Start the DB and change the password**
+**Start the DB**
 ```
 export GENOME_ENV=dev
 docker-compose up db
