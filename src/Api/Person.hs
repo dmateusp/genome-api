@@ -23,12 +23,14 @@ import           Database.Bolt    as DB
 import           Servant
 import           ServerState                (AppT (..), ServerState (..), runDB)
 import           Utils                      (ToTemplateParams(..))
+import           GraphTypes
 
 
 data PersonApiError =
   BoltValueToPersonError
 
-data Person = Person
+data Person =
+  Person
   { name  :: Text
   , role  :: Text
   , slack :: Text
@@ -39,6 +41,7 @@ instance ToJSON Person
 instance FromJSON Person
 instance ToTemplateParams Person where
   toTemplateParams (Person name role slack email) = fromList $ [("name", T name), ("role", T role), ("slack", T slack), ("email", T email)]
+
 
 -- |Converts some BOLT value to Person
 toPerson :: Monad m => DB.Value -> m Person
@@ -53,54 +56,45 @@ toPerson p = do node  :: Node <- exact p
 
 -- | Defining API and server
 type PersonApi =
-             "persons" :> QueryParam "name" Text :> QueryParam "role" Text :> QueryParam "slack" Text :> QueryParam "email" Text :> Get '[JSON] [Person]
-        :<|> "person"  :> ReqBody '[JSON] Person :> Put '[JSON] Person
+            "person" :> ReqBody '[JSON] Person :> Post '[JSON] CreatedNode
+
+personServer :: MonadIO m => ServerT PersonApi (AppT m)
+personServer = addPerson
 
 personApi :: Proxy PersonApi
 personApi = Proxy
 
-personServer :: MonadIO m => ServerT PersonApi (AppT m)
-personServer = queryPersons
-         :<|>  upsertPerson
 
-
--- | DB Functions
-queryPersons :: MonadIO m => Maybe Text -> Maybe Text -> Maybe Text -> Maybe Text -> AppT m [Person]
-queryPersons name role slack email = do
-  logDebugNS "web" "Searching persons"
-
-  records <- runDB $ queryP cypher params
-  nodes   <- traverse (`at` "p") records
-  traverse toPerson nodes where
-
-    cypher :: Text
-    cypher = "MATCH (p:Person) WHERE " <>
-               "p.name CONTAINS {name}  OR " <>
-               "p.role CONTAINS {role}  OR " <>
-               "p.slack CONTAINS {slack} OR " <>
-               "p.email CONTAINS {email} " <>
-             "RETURN p"
-
-    toParam :: (Maybe Text, Text) -> (Text, DB.Value)
-    toParam ((Just val), argName) = (val, T argName)
-    toParam (Nothing, argName)    = ("" , T argName)
-
-    params :: Map Text DB.Value
-    params = fromList $ toParam <$> [(name, "name"), (role, "role"), (slack, "slack"), (email, "email")]
-
-
-upsertPerson :: MonadIO m => Person -> AppT m Person
-upsertPerson p = do
-  logDebugNS "web" $ "Upserting: " <> (toStrict $ decodeUtf8 $ encode p)
+-- | Handlers
+updatePerson :: MonadIO m => Person -> Text -> AppT m Person
+updatePerson p email = do
+  logDebugNS "web" $ "Updating person with email: " <> email
   result <- fmap head $ runDB $ queryP cypher (toTemplateParams p)
   person <- result `at` "p" >>= toPerson
   return $ person where
 
     cypher :: Text
-    cypher = "MERGE (p:Person { "<>
+    cypher = "CREATE (p:Person { "<>
                "name: {name} , "   <>
                "role: {role} , "   <>
                "slack: {slack}, "  <>
                "email: {email} "   <>
-             "}) "               <>
-             "RETURN p"
+            "}) "                <>
+            "RETURN id(p)"
+
+addPerson :: MonadIO m => Person -> AppT m CreatedNode
+addPerson p = do
+  logDebugNS "web" $ "Adding: " <> (toStrict $ decodeUtf8 $ encode p)
+  result <- fmap head $ runDB $ queryP cypher (toTemplateParams p)
+
+  personId <- result `at` "id" >>= exact
+  return $ CreatedNode personId where
+
+    cypher :: Text
+    cypher = "CREATE (p:Person { "<>
+               "name: {name} , "   <>
+               "role: {role} , "   <>
+               "slack: {slack}, "  <>
+               "email: {email} "   <>
+             "}) "                <>
+             "RETURN ID(p) as id"

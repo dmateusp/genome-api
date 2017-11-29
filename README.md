@@ -16,7 +16,7 @@ export GENOME_ENV=dev
 docker-compose up db
 ```
 
-Change the password for the database:
+Changing the password for the database:
 ```
 curl -H "Content-Type: application/json" -XPOST -d '{"password":"devenv"}' -u neo4j:neo4j http://192.168.99.100:7474/user/neo4j/password
 ```
