@@ -30,18 +30,27 @@ data Person =
   , role  :: Text
   , slack :: Text
   , email :: Text
-  , teamName :: Text  -- relationship
   } deriving (Eq, Show, Generic)
 
 instance ToJSON Person
 instance FromJSON Person
 instance ToTemplateParams Person where
-  toTemplateParams (Person name role slack email teamName) = fromList $
+  toTemplateParams (Person name role slack email) = fromList $
     [("name", T name),
     ("role", T role),
     ("slack", T slack),
-    ("email", T email),
-    ("teamName", T teamName)]
+    ("email", T email)]
+
+newtype PersonTeams =
+  PersonTeams
+  { teams :: [Text] } deriving (Eq, Show, Generic)
+instance ToJSON PersonTeams
+instance FromJSON PersonTeams
+instance ToTemplateParams PersonTeams where
+  toTemplateParams (PersonTeams teams) = fromList $
+    [("teams", L (T <$> teams))]
+
+
 
 -- |Converts some BOLT value to Person
 toPerson :: Monad m => DB.Value -> m Person
@@ -51,21 +60,25 @@ toPerson p = do node  :: Node <- exact p
                 role     :: Text <- (props `at` "role")  >>= exact
                 slack    :: Text <- (props `at` "slack") >>= exact
                 email    :: Text <- (props `at` "email") >>= exact
-                teamName :: Text <- (props `at` "teamName") >>= exact  -- that's wrong need to fix
-                return $ Person name role slack email teamName
+                return $ Person name role slack email
 
 
 -- | Defining API and server
 type PersonApi =
             "person" :> Capture "email" Text :> ReqBody '[JSON] Person :> PutNoContent '[JSON] NoContent
+       :<|> "person" :> Capture "email" Text :> "teams" :> ReqBody '[JSON] PersonTeams :> PutNoContent '[JSON] NoContent
 
 personServer :: MonadIO m => ServerT PersonApi (AppT m)
 personServer = upsertPerson
+          :<|> updateTeams
 
 personApi :: Proxy PersonApi
 personApi = Proxy
 
 
+
+-- MATCH (n { name: 'Andres' })-[r:MEMBER_OF]->()
+-- DELETE r
 -- | Handlers
 upsertPerson :: MonadIO m => Text -> Person -> AppT m NoContent
 upsertPerson email' p = do
@@ -73,10 +86,14 @@ upsertPerson email' p = do
   runDB $ queryP_ cypher $ insert "emailUpdate" (T email') $ toTemplateParams p
   return NoContent
   where
+
     cypher :: Text
-    cypher = "MATCH (team:Team {name: {teamName}}) " <>
-             "MERGE (p: Person {email: {emailUpdate}})-[r:MEMBER_OF]->(team) " <>
+    cypher = "MERGE (p: Person {email: {emailUpdate}}) " <>
              "SET p.name = {name}, " <>
                "p.role = {role}, "   <>
                "p.slack = {slack}, " <>
                "p.email = {emailUpdate}"
+
+updateTeams :: MonadIO m => Text -> PersonTeams -> AppT m NoContent
+updateTeams email teams = error ""
+
