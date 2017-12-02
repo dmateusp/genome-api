@@ -13,7 +13,7 @@ import           Data.Monoid                ((<>))
 import           Data.Text                  (Text)
 import           Data.Text.Lazy             (toStrict)
 import           Data.Text.Lazy.Encoding    (decodeUtf8)
-import           Data.Map.Strict            (fromList, Map, toList)
+import           Data.Map.Strict            (fromList, Map, toList, insert)
 import           Data.Pool                  (withResource)
 import           Control.Monad.Except       (MonadIO, liftIO, lift, join)
 import           Control.Monad.Logger       (logDebugNS)
@@ -23,11 +23,6 @@ import           Database.Bolt    as DB
 import           Servant
 import           ServerState                (AppT (..), ServerState (..), runDB)
 import           Utils                      (ToTemplateParams(..))
-import           GraphTypes
-
-
-data PersonApiError =
-  BoltValueToPersonError
 
 data Person =
   Person
@@ -56,45 +51,25 @@ toPerson p = do node  :: Node <- exact p
 
 -- | Defining API and server
 type PersonApi =
-            "person" :> ReqBody '[JSON] Person :> Post '[JSON] CreatedNode
+            "person" :> Capture "email" Text :> ReqBody '[JSON] Person :> Put '[JSON] NoContent
 
 personServer :: MonadIO m => ServerT PersonApi (AppT m)
-personServer = addPerson
+personServer = upsertPerson
 
 personApi :: Proxy PersonApi
 personApi = Proxy
 
 
 -- | Handlers
-updatePerson :: MonadIO m => Person -> Text -> AppT m Person
-updatePerson p email = do
-  logDebugNS "web" $ "Updating person with email: " <> email
-  result <- fmap head $ runDB $ queryP cypher (toTemplateParams p)
-  person <- result `at` "p" >>= toPerson
-  return $ person where
-
+upsertPerson :: MonadIO m => Text -> Person -> AppT m NoContent
+upsertPerson email' p = do
+  logDebugNS "web" $ "Upserting: " <> (toStrict $ decodeUtf8 $ encode p)
+  runDB $ queryP_ cypher $ insert "emailUpdate" (T email') $ toTemplateParams p
+  return NoContent
+  where
     cypher :: Text
-    cypher = "CREATE (p:Person { "<>
-               "name: {name} , "   <>
-               "role: {role} , "   <>
-               "slack: {slack}, "  <>
-               "email: {email} "   <>
-            "}) "                <>
-            "RETURN id(p)"
-
-addPerson :: MonadIO m => Person -> AppT m CreatedNode
-addPerson p = do
-  logDebugNS "web" $ "Adding: " <> (toStrict $ decodeUtf8 $ encode p)
-  result <- fmap head $ runDB $ queryP cypher (toTemplateParams p)
-
-  personId <- result `at` "id" >>= exact
-  return $ CreatedNode personId where
-
-    cypher :: Text
-    cypher = "CREATE (p:Person { "<>
-               "name: {name} , "   <>
-               "role: {role} , "   <>
-               "slack: {slack}, "  <>
-               "email: {email} "   <>
-             "}) "                <>
-             "RETURN ID(p) as id"
+    cypher = "MERGE (p:Person {email: {emailUpdate}}) " <>
+             "SET p.name = {name}, " <>
+               "p.role = {role}, "   <>
+               "p.slack = {slack}, " <>
+               "p.email = {emailUpdate}"
