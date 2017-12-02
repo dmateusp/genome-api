@@ -133,6 +133,6 @@ envPool Development = 1
 envPool Production  = 8
 
 envBoltCfg :: Environment -> DB.BoltCfg
-envBoltCfg Test        = def {DB.user = "neo4j", DB.password = "testenv", DB.host = "192.168.99.100"}
-envBoltCfg Development = def {DB.user = "neo4j", DB.password = "devenv" , DB.host = "192.168.99.100"}
+envBoltCfg Test        = def {DB.host = "192.168.99.100"}
+envBoltCfg Development = def {DB.host = "192.168.99.100"}
 envBoltCfg Production  = def {DB.user = "neo4j", DB.password = "prod"}

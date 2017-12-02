@@ -14,7 +14,8 @@ services:
         depends_on:
             - genome-api
 
-    db:
+    neo4j_db:
+        container_name: neo4j_db
         image: neo4j
         ports:
             - "7474:7474"
@@ -22,3 +23,5 @@ services:
         volumes:
             - ${HOME}/genome-api/neo4j-persist/${GENOME_ENV}/data:/data:cached
             - ${HOME}/genome-api/neo4j-persist/${GENOME_ENV}/logs:/logs:cached
+        environment:
+            - NEO4J_AUTH=none
