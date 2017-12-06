@@ -14,7 +14,7 @@ import GHC.Generics
 data Team = Team
   { name         :: String
   , role         :: String
-  , githubChanel :: String
+  , slackChannel :: String
   } deriving (Eq, Show, Generic)
 
 instance ToJSON Team

@@ -10,33 +10,33 @@
  
 ## Getting started
 
-**Start the DB and change the password**
-```
+**Start the DB**
+```bash
 export GENOME_ENV=dev
-docker-compose up db
+docker-compose up neo4j_db
 ```
 
-Change the password for the database:
+**Creating the constraints and importing test data**
+```bash
+./neo4j/init_db.sh
 ```
-curl -H "Content-Type: application/json" -XPOST -d '{"password":"devenv"}' -u neo4j:neo4j http://192.168.99.100:7474/user/neo4j/password
-```
+
 The Database's data and logs will be persisted under `${HOME}/genome-api/neo4j-persist/${GENOME_ENV}/`, you can reset your development data by running: `rm -rf ${HOME}/genome-api/neo4j-persist/dev/`
 
 **Building and starting the web server**
-```
+```bash
 stack build
 stack exec genome-api
 ```
 By default the server starts at `localhost:8081`
 
 **Running the tests**
-```
+```bash
 ./deploy/run_tests.sh
 ```
 
 ### Trying out the API with curl
-```
-curl -i -X GET -H "Content-Type: application/json" localhost:8081/persons
+```bash
+curl -i -X PUT -H "Content-Type: application/json" -d '{"name": "Daniel Mateus Pires", "role": "Software & Data Engineer", "slack": "@dpires", "email": "dpires@gilt.com"}' localhost:8081/person/dpires@gilt.com
 
-curl -i -X PUT -H "Content-Type: application/json" -d '{"name": "Daniel Mateus Pires", "role": "Software & Data Engineer", "slack": "@dpires", "email": "dpires@gilt.com"}' localhost:8081/person
 ```
