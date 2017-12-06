@@ -75,10 +75,6 @@ personServer = upsertPerson
 personApi :: Proxy PersonApi
 personApi = Proxy
 
-
-
--- MATCH (n { name: 'Andres' })-[r:MEMBER_OF]->()
--- DELETE r
 -- | Handlers
 upsertPerson :: MonadIO m => Text -> Person -> AppT m NoContent
 upsertPerson email' p = do
@@ -95,5 +91,20 @@ upsertPerson email' p = do
                "p.email = {emailUpdate}"
 
 updateTeams :: MonadIO m => Text -> PersonTeams -> AppT m NoContent
-updateTeams email teams = error ""
+updateTeams email teams = do
+  logDebugNS "web" $ "Updating teams for " <> email <> " " <> (toStrict $ decodeUtf8 $ encode teams)
+  runDB $ queryP_ cypher $ fromList [("email", (T email))]
+  runDB $ queryP_ cypher' $ insert "email" (T email) $ toTemplateParams teams
+  return NoContent
+  where
+
+    cypher :: Text
+    cypher = "MATCH (p:Person { email: {email} })-[r:MEMBER_OF]->()" <>
+             "DELETE r"
+
+    cypher' :: Text
+    cypher' = "MATCH (p:Person),(t:Team)" <>
+              "WHERE p.email = {email} AND t.name in {teams}" <>
+              "CREATE (p)-[r:MEMBER_OF]->(t)" <>
+              "RETURN r"
 

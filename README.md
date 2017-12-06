@@ -37,7 +37,6 @@ By default the server starts at `localhost:8081`
 
 ### Trying out the API with curl
 ```bash
-curl -i -X GET -H "Content-Type: application/json" localhost:8081/persons
+curl -i -X PUT -H "Content-Type: application/json" -d '{"name": "Daniel Mateus Pires", "role": "Software & Data Engineer", "slack": "@dpires", "email": "dpires@gilt.com"}' localhost:8081/person/dpires@gilt.com
 
-curl -i -X PUT -H "Content-Type: application/json" -d '{"name": "Daniel Mateus Pires", "role": "Software & Data Engineer", "slack": "@dpires", "email": "dpires@gilt.com"}' localhost:8081/person
 ```
