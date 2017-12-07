@@ -4,6 +4,7 @@ module Server(app, api) where
 
 import Api.Person                (personServer, PersonApi)
 import Api.Team                  (teamServer, TeamApi)
+import Api.MicroService          (microServiceServer, MicroServiceApi)
 import Control.Monad.Except
 import Servant
 import Servant.Server
@@ -14,6 +15,7 @@ import Control.Category          ((<<<), (>>>))
 
 type AppApi = PersonApi
          :<|> TeamApi
+         :<|> MicroServiceApi
 
 api :: Proxy AppApi
 api = Proxy
@@ -35,6 +37,7 @@ appToServer serverState = enter (convertApp serverState >>> NT Handler) server w
 server :: MonadIO m => ServerT AppApi (AppT m)
 server = personServer
     :<|> teamServer
+    :<|> microServiceServer
 
 app :: ServerState -> Application
 app serverState = serve api (appToServer serverState)

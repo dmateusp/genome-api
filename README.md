@@ -43,5 +43,9 @@ curl -i -X PUT -H "Content-Type: application/json" -d '{"teams":["DataTeam", "An
 
 #  Team API 
 curl -i -X PUT -H "Content-Type: application/json" -d '{"name": "Cerebro", "role": "Personalization & all things data science", "slackChannel": "#team-personalization"}' localhost:8081/team/Cerebro
-curl -i -X PUT -H "Content-Type: application/json" -d '{"microServices":["svc-event"]}' localhost:8081/team/Cerebro/microServices
+curl -i -X PUT -H "Content-Type: application/json" -d '{"microServices":["api-personalization"]}' localhost:8081/team/Cerebro/microservices
+
+#  MicroService API
+curl -i -X PUT -H "Content-Type: application/json" -d '{"name": "api-personalization", "github": "gilt/api-personalization", "slackChannel": "#team-personalization", "lastCommit": "07/12/2017", "lastDeployment": "01/01/2017", "description": "personalization goodness"}' localhost:8081/microservice/api-personalization
+curl -i -X PUT -H "Content-Type: application/json" -d '{"dependencies":["svc-event"]}' localhost:8081/microservice/api-personalization/dependencies
 ```
