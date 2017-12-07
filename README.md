@@ -37,6 +37,11 @@ By default the server starts at `localhost:8081`
 
 ### Trying out the API with curl
 ```bash
+#  Person API
 curl -i -X PUT -H "Content-Type: application/json" -d '{"name": "Daniel Mateus Pires", "role": "Software & Data Engineer", "slack": "@dpires", "email": "dpires@gilt.com"}' localhost:8081/person/dpires@gilt.com
+curl -i -X PUT -H "Content-Type: application/json" -d '{"teams":["DataTeam", "AnotherTeam"]}' localhost:8081/person/dpires@gilt.com/teams
 
+#  Team API 
+curl -i -X PUT -H "Content-Type: application/json" -d '{"name": "Cerebro", "role": "Personalization & all things data science", "slackChannel": "#team-personalization"}' localhost:8081/team/Cerebro
+curl -i -X PUT -H "Content-Type: application/json" -d '{"microServices":["svc-event"]}' localhost:8081/team/Cerebro/microServices
 ```

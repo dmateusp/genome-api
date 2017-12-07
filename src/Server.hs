@@ -2,18 +2,19 @@
 {-# LANGUAGE DataKinds #-}
 module Server(app, api) where
 
-import Api.Person(personServer, PersonApi)
+import Api.Person                (personServer, PersonApi)
+import Api.Team                  (teamServer, TeamApi)
 import Control.Monad.Except
-import Servant((:<|>), (:~>) (NT),
-                Proxy (Proxy), Raw, ServantErr, Server,
-                enter, serve)
+import Servant
 import Servant.Server
-import ServerState (AppT (..), ServerState (..))
-import qualified Database.Bolt                        as DB
-import Control.Category ((<<<), (>>>))
+import ServerState               (AppT (..), ServerState (..))
+import qualified Database.Bolt   as DB
+import Control.Category          ((<<<), (>>>))
 
 
 type AppApi = PersonApi
+         :<|> TeamApi
+
 api :: Proxy AppApi
 api = Proxy
 
@@ -33,6 +34,7 @@ appToServer serverState = enter (convertApp serverState >>> NT Handler) server w
 
 server :: MonadIO m => ServerT AppApi (AppT m)
 server = personServer
+    :<|> teamServer
 
 app :: ServerState -> Application
 app serverState = serve api (appToServer serverState)
