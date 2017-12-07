@@ -50,7 +50,7 @@ instance ToTemplateParams TeamMicroServices where
 -- | Defining API and server
 type TeamApi =
             "team" :> Capture "name" Text :> ReqBody '[JSON] Team :> PutNoContent '[JSON] NoContent
-       :<|> "team" :> Capture "name" Text :> "microServices" :> ReqBody '[JSON] TeamMicroServices :> PutNoContent '[JSON] NoContent
+       :<|> "team" :> Capture "name" Text :> "microservices" :> ReqBody '[JSON] TeamMicroServices :> PutNoContent '[JSON] NoContent
 
 teamServer :: MonadIO m => ServerT TeamApi (AppT m)
 teamServer = upsertTeam
@@ -87,6 +87,6 @@ updateMicroServices name microServices = do
 
     cypher' :: Text
     cypher' = "MATCH (t:Team),(ms:MicroService)" <>
-              "WHERE t.name = {name} AND t.name in {microServices}" <>
-              "CREATE (p)-[r:OWNS]->(t)" <>
+              "WHERE t.name = {name} AND ms.name in {microServices}" <>
+              "CREATE (t)-[r:OWNS]->(ms)" <>
               "RETURN r"
