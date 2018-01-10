@@ -1,10 +1,12 @@
-{-# LANGUAGE DataKinds           #-}
-{-# LANGUAGE TypeOperators       #-}
-{-# LANGUAGE DeriveGeneric       #-}
-{-# LANGUAGE OverloadedStrings   #-}
-{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE DataKinds                  #-}
+{-# LANGUAGE TypeOperators              #-}
+{-# LANGUAGE DeriveGeneric              #-}
+{-# LANGUAGE OverloadedStrings          #-}
+{-# LANGUAGE ScopedTypeVariables        #-}
+{-# LANGUAGE DeriveDataTypeable         #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
-module Api.MicroService (MicroService(..), MicroServiceApi, microServiceServer, microServiceApi) where
+module Api.MicroService (MicroService(..), MicroServiceDependencies(..), MicroServiceApi, microServiceServer, microServiceApi) where
 
 import           GHC.Generics
 import           Data.Aeson
@@ -23,6 +25,8 @@ import           Database.Bolt    as DB
 import           Servant
 import           ServerState                (AppT (..), ServerState (..), runDB)
 import           Utils                      (ToTemplateParams(..))
+import           Data.Swagger               (ToSchema)
+import           Data.Typeable              (Typeable)
 
 data MicroService = MicroService
   { name           :: Text
@@ -30,10 +34,11 @@ data MicroService = MicroService
   , lastCommit     :: Text
   , lastDeployment :: Text
   , description    :: Text
-  } deriving (Eq, Show, Generic)
+  } deriving (Eq, Show, Generic, Typeable)
 
 instance ToJSON MicroService
 instance FromJSON MicroService
+instance ToSchema MicroService
 instance ToTemplateParams MicroService where
   toTemplateParams (MicroService name github lastCommit lastDeployment description) = fromList $
     [("name", T name),
@@ -44,10 +49,11 @@ instance ToTemplateParams MicroService where
 
 newtype MicroServiceDependencies =
   MicroServiceDependencies
-  { dependencies :: [Text] } deriving (Eq, Show, Generic)
+  { dependencies :: [Text] } deriving (Eq, Show, Generic, Typeable)
 
 instance ToJSON MicroServiceDependencies
 instance FromJSON MicroServiceDependencies
+instance ToSchema MicroServiceDependencies
 instance ToTemplateParams MicroServiceDependencies where
   toTemplateParams (MicroServiceDependencies dependencies) = fromList $
     [("dependencies", L (T <$> dependencies))]

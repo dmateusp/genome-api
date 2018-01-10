@@ -26,6 +26,9 @@ library
                      , aeson
                      , mtl
                      , servant-server
+                     , servant-swagger
+                     , swagger2
+                     , lens
                      , wai
                      , warp
                      , hasbolt

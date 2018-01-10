@@ -6,6 +6,11 @@ services:
         command: genome-api
         expose:
             - "1234"
+    swagger-ui:
+        container_name: swagger-ui
+        image: swaggerapi/swagger-ui
+        environment:
+          - API_URL=http://genome-api/swagger.json
     nginx:
         build: ./nginx
         image: nginx

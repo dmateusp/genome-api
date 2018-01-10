@@ -1,10 +1,12 @@
-{-# LANGUAGE DataKinds           #-}
-{-# LANGUAGE TypeOperators       #-}
-{-# LANGUAGE DeriveGeneric       #-}
-{-# LANGUAGE OverloadedStrings   #-}
-{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE DataKinds                  #-}
+{-# LANGUAGE TypeOperators              #-}
+{-# LANGUAGE DeriveGeneric              #-}
+{-# LANGUAGE OverloadedStrings          #-}
+{-# LANGUAGE ScopedTypeVariables        #-}
+{-# LANGUAGE DeriveDataTypeable         #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
-module Api.Person (Person(..), PersonApi, personServer, personApi) where
+module Api.Person (Person(..), PersonTeams(..), PersonApi, personServer, personApi) where
 
 import           GHC.Generics
 import           Data.Aeson
@@ -23,17 +25,19 @@ import           Database.Bolt    as DB
 import           Servant
 import           ServerState                (AppT (..), ServerState (..), runDB)
 import           Utils                      (ToTemplateParams(..))
-
+import           Data.Swagger               (ToSchema)
+import           Data.Typeable              (Typeable)
 data Person =
   Person
   { name  :: Text
   , role  :: Text
   , slack :: Text
   , email :: Text
-  } deriving (Eq, Show, Generic)
+  } deriving (Eq, Show, Generic, Typeable)
 
 instance ToJSON Person
 instance FromJSON Person
+instance ToSchema Person
 instance ToTemplateParams Person where
   toTemplateParams (Person name role slack email) = fromList $
     [("name", T name),
@@ -43,9 +47,10 @@ instance ToTemplateParams Person where
 
 newtype PersonTeams =
   PersonTeams
-  { teams :: [Text] } deriving (Eq, Show, Generic)
+  { teams :: [Text] } deriving (Eq, Show, Generic, Typeable)
 instance ToJSON PersonTeams
 instance FromJSON PersonTeams
+instance ToSchema PersonTeams
 instance ToTemplateParams PersonTeams where
   toTemplateParams (PersonTeams teams) = fromList $
     [("teams", L (T <$> teams))]

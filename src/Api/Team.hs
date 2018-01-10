@@ -1,10 +1,12 @@
-{-# LANGUAGE DataKinds           #-}
-{-# LANGUAGE TypeOperators       #-}
-{-# LANGUAGE DeriveGeneric       #-}
-{-# LANGUAGE OverloadedStrings   #-}
-{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE DataKinds                  #-}
+{-# LANGUAGE TypeOperators              #-}
+{-# LANGUAGE DeriveGeneric              #-}
+{-# LANGUAGE OverloadedStrings          #-}
+{-# LANGUAGE ScopedTypeVariables        #-}
+{-# LANGUAGE DeriveDataTypeable         #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
-module Api.Team (Team(..), TeamApi, teamServer, teamApi) where
+module Api.Team (Team(..), TeamMicroServices(..), TeamApi, teamServer, teamApi) where
 
 import           GHC.Generics
 import           Data.Aeson
@@ -23,15 +25,18 @@ import           Database.Bolt    as DB
 import           Servant
 import           ServerState                (AppT (..), ServerState (..), runDB)
 import           Utils                      (ToTemplateParams(..))
+import           Data.Swagger               (ToSchema)
+import           Data.Typeable              (Typeable)
 
 data Team = Team
   { name         :: Text
   , role         :: Text
   , slackChannel :: Text
-  } deriving (Eq, Show, Generic)
+  } deriving (Eq, Show, Generic, Typeable)
 
 instance ToJSON Team
 instance FromJSON Team
+instance ToSchema Team
 instance ToTemplateParams Team where
   toTemplateParams (Team name role slackChannel) = fromList $
     [("name", T name),
@@ -40,9 +45,10 @@ instance ToTemplateParams Team where
 
 newtype TeamMicroServices =
   TeamMicroServices
-  { microServices :: [Text] } deriving (Eq, Show, Generic)
+  { microServices :: [Text] } deriving (Eq, Show, Generic, Typeable)
 instance ToJSON TeamMicroServices
 instance FromJSON TeamMicroServices
+instance ToSchema TeamMicroServices
 instance ToTemplateParams TeamMicroServices where
   toTemplateParams (TeamMicroServices microServices) = fromList $
     [("microServices", L (T <$> microServices))]
